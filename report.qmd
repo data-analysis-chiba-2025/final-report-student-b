@@ -1,0 +1,111 @@
+---
+title: "Unveiling Anime Trends"
+author: Student B
+format: docx
+---
+
+```{r}
+#| label: setup
+#| echo: false
+#| message: false
+
+# Load packages
+library(tidyverse)
+```
+
+## Introduction
+
+Anime has become extremely popular worldwide due to the diversification of distribution methods via the internet. However, the factors contributing to its popularity remain shrouded in mystery due to the complexity of analytical methods. A combination of features such as title, genres, studios, and ranking can provide more accurate and relevant recommendations (Pillai & Manhar, 2023).
+
+Here, I analyze the tidy_anime and raw_anime dataset to answer the following questions:
+
+How does the broadcast seasons affect its average favorites?
+
+How does the type of anime influence the number of users who have added it to their list?
+
+Are there any trends in the fluctuations of anime scores over time, and does the source of the anime influence such trends?
+
+
+## Data visualization
+
+```{r}
+tidy_anime <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2019/2019-04-23/tidy_anime.csv")
+raw_anime <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2019/2019-04-23/raw_anime.csv")
+```
+```{r}
+new_raw_anime <-
+  raw_anime |>
+  separate_wider_delim (
+    cols = premiered, 
+    delim = " ",
+    names = c("seasons", "year")) |>
+      mutate(year = parse_number(year))
+connection_anime <- left_join(new_raw_anime, tidy_anime, by = "animeID")
+```
+
+```{r}
+average_seasons_scores <- connection_anime |>
+  filter(!is.na(seasons)) |>
+  group_by(seasons) |>
+  summarise(
+    average_favorites = mean(favorites.y, na.rm = TRUE) ) |>
+  arrange(average_favorites)
+              
+ ggplot(average_seasons_scores, aes(x = reorder(seasons, average_favorites), y = average_favorites, fill = seasons)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Figure 1",
+    subtitle = "Relationship between Seasons and Average Favorites",
+  　x = "Seasons", 
+    y = "Average Favorites" 
+  ) +
+  theme(legend.position = "none")
+```
+```{r}
+avarage_members <- connection_anime |>
+  filter(type.x != "Unknown") |>
+  group_by(type.x) |>
+  summarise(
+    avarage_members.x = mean(members.x, na.rm = TRUE)
+  )
+
+ggplot(avarage_members, aes(x = reorder(type.x, avarage_members.x), y = avarage_members.x, fill = type.x)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = "Figure 2",
+    subtitle = "Anime Type and Anime Type and the Number of Members",
+    y = "the Number Members that added this anime in their list ",
+    x = "Anime Type"
+  ) +
+  coord_flip() +
+  theme(legend.position = "none")
+
+```
+```{r}
+anime_trends <- connection_anime |>
+  filter(!is.na(year), !is.na(score.x), !is.na(source.x)) 
+
+ggplot(anime_trends, aes(x = year, y = score.x, color = source.x)) +
+  geom_point(size = 1) +
+  labs(
+    title = "Figure 3",
+    subtitle = "MyAnimeList score for each anime by Broadcast Year and Genre",
+    x = "Broadcast Year",
+    y = "MyAnimeList Score",
+    color = "Anime Source"
+  ) +
+    theme(legend.position = "bottom")
+```
+
+
+## Discussion
+
+Figure 1 shows the average correlation between the broadcast period of anime and the number of favorites. According to the bar graph, the average number of favorites for anime in the "Autumn" period was the highest, followed by Spring, Winter, and Summer. This suggests that many highly anticipated or popular works are more likely to be released at certain times, like Autumn.
+
+Figure 2 shows the relationship between the number of members who added this anime to their list and the type of anime. According to the bar graph, the number of members is low for the "Music", "OVA", and "ONA" categories. In contrast, the average number of members is high for the "TV" and "Movie" categories, which are popular. This is because TV shows and movies are easy to access, so there are many potential viewers, leading to an increase in bookmarks. On the other hand, since the MyAnimeList site specializes in anime, this is likely influenced by the fact that few users bookmark music.
+
+Figure 3 shows the distribution of scores by source for each anime over time, with the sources colored. In the early days, the number of works and genres was small, and the scores were biased toward the center. However, since the 1990s, the number of anime sources has increased, and the scores have become more distributed. Original anime used to be the norm, but now anime based on manga and novels are the norm. Manga-based anime have a higher average score, but the average score for original works has declined. This reflects the diversification of anime sources, the increase in works, and the dispersion of scores.
+
+## References
+
+Pillai, A., & Manhar, A. (2023). Unveiling Anime Preferences: A Data-driven Analysis using MyAnimeList API. International Journal of Scientific Research in Computer Science, Engineering and Information Technology, 9(3), 488–495. https://doi.org/10.32628/CSEIT23903115
